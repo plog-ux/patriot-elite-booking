@@ -894,7 +894,7 @@
      Sandbox URL is loaded by default. For production,
      switch to: https://web.squarecdn.com/v1/square.js
      ═══════════════════════════════════════════════════ -->
-<script src="https://web.squarecdn.com/v1/square.js"></script>
+<script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
 <!-- For production, replace the line above with:
 <script src="https://web.squarecdn.com/v1/square.js"></script>
 -->
@@ -904,7 +904,7 @@
 // CONFIGURATION — Set your Square IDs
 // and your backend API URL
 // ══════════════════════════════════════
-const SQUARE_APP_ID    = 'sq0idp-G6vcBhjDteG9gJsKZZRmYA';
+const SQUARE_APP_ID    = 'sandbox-sq0idb-8aBi2iW6mUiql7bJjctiIg';
 const SQUARE_LOCATION  = 'LQ2X1WKSWZ4X0';
 const API_BASE         = '';  // Same server serves both site and API — no URL needed
 const USE_SANDBOX      = true;                // Set false for production
@@ -954,6 +954,7 @@ async function loadServices() {
         price:        svc.priceCents ? svc.priceCents / 100 : null,
         priceCents:   svc.priceCents,
         priceDisplay: svc.priceDisplay,
+        pricePerUnit: svc.pricePerUnit || '',
         variationId:  svc.variationId,
         description:  svc.description,
       };
@@ -972,7 +973,7 @@ async function loadServices() {
       card.innerHTML = `
         <div class="svc-icon">${icon}</div>
         <h3>${svc.name}</h3>
-        <div class="svc-price">${svc.priceDisplay}</div>
+        <div class="svc-price">${svc.priceDisplay}${svc.pricePerUnit ? '<span style="font-size:14px;color:var(--muted)"> ' + svc.pricePerUnit + '</span>' : ''}</div>
         <div class="svc-detail">${svc.description || ''}</div>
       `;
       grid.appendChild(card);
