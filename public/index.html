@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Your Ride | Patriot Elite Logistics</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold: #c9a84c;
+    --gold-hover: #dabb65;
+    --black: #0a0a0a;
+    --dark: #141414;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #e8e8e8;
+    --muted: #999;
+    --white: #fff;
+    --danger: #e55;
+    --success: #4a9;
+    --radius: 8px;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--black);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { color: var(--gold-hover); }
+
+  /* ── Header ── */
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    background: var(--dark);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-area .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--black);
+  }
+  .logo-area h1 {
+    font-size: 18px;
+    letter-spacing: 2px;
+    font-weight: 700;
+    color: var(--white);
+  }
+  .logo-area .tagline {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .header-contact {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .header-contact a { color: var(--gold); }
+
+  /* ── Layout ── */
+  .page-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .page-subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  /* ── Progress Steps ── */
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 36px;
+    overflow-x: auto;
+  }
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s;
+    border-bottom: 3px solid transparent;
+  }
+  .progress-step.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+  .progress-step.completed {
+    color: var(--success);
+    border-bottom-color: var(--success);
+  }
+  .progress-step .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+  .progress-step.active .step-num {
+    border-color: var(--gold);
+    background: var(--gold);
+    color: var(--black);
+  }
+  .progress-step.completed .step-num {
+    border-color: var(--success);
+    background: var(--success);
+    color: var(--white);
+  }
+  .progress-connector {
+    flex: 0 0 24px;
+    height: 2px;
+    background: var(--border);
+  }
+
+  /* ── Panels ── */
+  .booking-panel {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .booking-panel.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Service Cards ── */
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .service-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .service-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+  }
+  .service-card.selected {
+    border-color: var(--gold);
+    background: rgba(201, 168, 76, 0.08);
+  }
+  .service-card.selected::after {
+    content: '\2713';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    background: var(--gold);
+    color: var(--black);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .service-card .svc-icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .service-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .service-card .svc-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .service-card .svc-detail {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* ── Date/Time Picker ── */
+  .datetime-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 700px) {
+    .datetime-layout { grid-template-columns: 1fr; }
+  }
+  .cal-section, .time-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .cal-header h3 { font-size: 16px; color: var(--white); }
+  .cal-nav {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .cal-nav:hover { border-color: var(--gold); color: var(--gold); }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+  .cal-dow {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 6px 0;
+    text-transform: uppercase;
+  }
+  .cal-day {
+    padding: 8px 4px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: none;
+    color: var(--text);
+  }
+  .cal-day:hover:not(.disabled):not(.empty) {
+    background: rgba(201, 168, 76, 0.15);
+    color: var(--gold);
+  }
+  .cal-day.selected {
+    background: var(--gold);
+    color: var(--black);
+    font-weight: 700;
+  }
+  .cal-day.today { border: 1px solid var(--gold); }
+  .cal-day.disabled { color: #444; cursor: default; }
+  .cal-day.empty { cursor: default; }
+
+  .time-section h3 {
+    font-size: 16px;
+    color: var(--white);
+    margin-bottom: 16px;
+  }
+  .time-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .time-slot {
+    padding: 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    background: none;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .time-slot:hover { border-color: var(--gold); color: var(--gold); }
+  .time-slot.selected {
+    background: var(--gold);
+    color: var(--black);
+    font-weight: 600;
+    border-color: var(--gold);
+  }
+
+  /* ── Forms ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-group.full-width { grid-column: 1 / -1; }
+  .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .form-group label .req { color: var(--gold); }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--gold);
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group select option { background: var(--dark); }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 28px 0;
+  }
+  .section-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label .icon { font-size: 20px; }
+
+  /* ── Checkbox / Toggle ── */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--card);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .checkbox-row:hover { background: #222; }
+  .checkbox-row input[type="checkbox"] {
+    accent-color: var(--gold);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+  .checkbox-row span { font-size: 14px; }
+  .checkbox-row .discount-badge {
+    margin-left: auto;
+    background: rgba(201, 168, 76, 0.15);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 14px 28px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary {
+    background: var(--gold);
+    color: var(--black);
+  }
+  .btn-primary:hover { background: var(--gold-hover); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-outline-gold {
+    background: transparent;
+    border: 2px solid var(--gold);
+    color: var(--gold);
+  }
+  .btn-outline-gold:hover {
+    background: rgba(201, 168, 76, 0.1);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 32px;
+    gap: 12px;
+  }
+
+  /* ── Summary Sidebar ── */
+  .review-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .review-layout { grid-template-columns: 1fr; }
+  }
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    position: sticky;
+    top: 100px;
+  }
+  .summary-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    padding: 6px 0;
+  }
+  .summary-row .label { color: var(--muted); }
+  .summary-row .value { color: var(--text); font-weight: 500; }
+  .summary-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    padding-top: 14px;
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .summary-total .amount { color: var(--gold); }
+
+  /* ── Payment Options ── */
+  .payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .payment-option {
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .payment-option:hover { border-color: var(--gold); }
+  .payment-option.selected { border-color: var(--gold); background: rgba(201, 168, 76, 0.06); }
+  .payment-option input[type="radio"] {
+    accent-color: var(--gold);
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .payment-option .po-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .payment-option .po-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* Square card container placeholder */
+  #card-container {
+    min-height: 50px;
+    margin: 16px 0;
+    padding: 14px;
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  #card-container.hidden { display: none; }
+  .square-placeholder {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+  }
+
+  /* ── Confirmation ── */
+  .confirmation-panel {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .confirm-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--success);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: var(--white);
+    margin-bottom: 24px;
+  }
+  .confirmation-panel h2 {
+    font-size: 26px;
+    color: var(--white);
+    margin-bottom: 10px;
+  }
+  .confirmation-panel .conf-sub {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+  .conf-details {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px;
+    text-align: left;
+    max-width: 500px;
+    margin: 0 auto 28px;
+  }
+  .conf-details .cd-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .conf-details .cd-row:last-child { border-bottom: none; }
+  .conf-details .cd-label { color: var(--muted); }
+  .conf-details .cd-value { color: var(--text); font-weight: 500; }
+
+  /* ── Footer ── */
+  .site-footer {
+    background: var(--dark);
+    border-top: 1px solid var(--border);
+    padding: 24px 32px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .site-footer a { color: var(--gold); }
+
+  /* ── Utility ── */
+  .text-gold { color: var(--gold); }
+  .mt-8 { margin-top: 8px; }
+  .mt-16 { margin-top: 16px; }
+  .mb-16 { margin-bottom: 16px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="site-header">
+  <div class="logo-area">
+    <div class="logo-icon">PE</div>
+    <div>
+      <h1>PATRIOT ELITE LOGISTICS</h1>
+      <div class="tagline">Veteran-Owned &amp; Operated</div>
+    </div>
+  </div>
+  <div class="header-contact">
+    <span><a href="tel:5202007141">(520) 200-7141</a></span>
+    <span><a href="mailto:booking@patriotelitelogistics.com">booking@patriotelitelogistics.com</a></span>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<div class="page-wrapper">
+  <h2 class="page-title">Book Your Ride</h2>
+  <p class="page-subtitle">Select a service, pick your time, and confirm — all in one place.</p>
+
+  <!-- Progress Bar -->
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-step active" data-step="1" onclick="goToStep(1)">
+      <span class="step-num">1</span> Service
+    </div>
+    <div class="progress-connector"></div>
+    <div class="progress-step" data-step="2" onclick="goToStep(2)">
+      <span class="step-num">2</span> Date &amp; Time
+    </div>
+    <div class="progress-connector"></div>
+    <div class="progress-step" data-step="3" onclick="goToStep(3)">
+      <span class="step-num">3</span> Your Details
+    </div>
+    <div class="progress-connector"></div>
+    <div class="progress-step" data-step="4" onclick="goToStep(4)">
+      <span class="step-num">4</span> Review &amp; Pay
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1: SERVICE SELECTION ═══ -->
+  <div class="booking-panel active" id="panel-1">
+    <div class="section-label"><span class="icon">&#128663;</span> Choose Your Service</div>
+    <div class="service-grid">
+      <div class="service-card" data-service="hourly" onclick="selectService(this)">
+        <div class="svc-icon">&#128338;</div>
+        <h3>Hourly Limo Service</h3>
+        <div class="svc-price">$135<span style="font-size:14px;color:var(--muted)"> /hr</span></div>
+        <div class="svc-detail">Up to 6 passengers. Perfect for events, date nights, or airport runs.</div>
+      </div>
+      <div class="service-card" data-service="daily" onclick="selectService(this)">
+        <div class="svc-icon">&#128197;</div>
+        <h3>Daily Limo Service</h3>
+        <div class="svc-price">$1,000<span style="font-size:14px;color:var(--muted)"> /8 hrs</span></div>
+        <div class="svc-detail">Full-day block. Ideal for corporate on-sites, weddings, or VIP transport.</div>
+      </div>
+      <div class="service-card" data-service="standard" onclick="selectService(this)">
+        <div class="svc-icon">&#128664;</div>
+        <h3>Standard Livery</h3>
+        <div class="svc-price">$1.50<span style="font-size:14px;color:var(--muted)"> /mi</span></div>
+        <div class="svc-detail">$20 origin fee + $10/stop + mileage. Our most flexible option.</div>
+      </div>
+      <div class="service-card" data-service="event" onclick="selectService(this)">
+        <div class="svc-icon">&#127881;</div>
+        <h3>Event Shuttle</h3>
+        <div class="svc-price">Custom Quote</div>
+        <div class="svc-detail">Round-trip shuttle for concerts, shows, and special events. Contact for pricing.</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <div></div>
+      <button class="btn btn-primary" id="step1Next" disabled onclick="goToStep(2)">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: DATE & TIME ═══ -->
+  <div class="booking-panel" id="panel-2">
+    <div class="section-label"><span class="icon">&#128197;</span> Pick a Date &amp; Time</div>
+    <div class="datetime-layout">
+      <div class="cal-section">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="changeMonth(-1)">&lsaquo;</button>
+          <h3 id="calMonthYear"></h3>
+          <button class="cal-nav" onclick="changeMonth(1)">&rsaquo;</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="time-section">
+        <h3>Available Times <span style="font-size:12px;font-weight:400;color:var(--muted)">(MST)</span></h3>
+        <div class="time-grid" id="timeGrid"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(1)">&larr; Back</button>
+      <button class="btn btn-primary" id="step2Next" disabled onclick="goToStep(3)">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: YOUR DETAILS ═══ -->
+  <div class="booking-panel" id="panel-3">
+    <!-- Contact Info -->
+    <div class="section-label"><span class="icon">&#128100;</span> Contact Information</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>First Name <span class="req">*</span></label>
+        <input type="text" id="firstName" placeholder="John" required>
+      </div>
+      <div class="form-group">
+        <label>Last Name <span class="req">*</span></label>
+        <input type="text" id="lastName" placeholder="Smith" required>
+      </div>
+      <div class="form-group">
+        <label>Email <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="john@example.com" required>
+      </div>
+      <div class="form-group">
+        <label>Phone <span class="req">*</span></label>
+        <input type="tel" id="phone" placeholder="(520) 555-0123" required>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Trip Details -->
+    <div class="section-label"><span class="icon">&#128205;</span> Trip Details</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Pickup Address <span class="req">*</span></label>
+        <input type="text" id="pickupAddr" placeholder="123 Main St, Sierra Vista, AZ">
+      </div>
+      <div class="form-group">
+        <label>Dropoff Address <span class="req">*</span></label>
+        <input type="text" id="dropoffAddr" placeholder="456 Broadway, Tucson, AZ">
+      </div>
+      <div class="form-group">
+        <label>Number of Passengers</label>
+        <select id="passengers">
+          <option value="1">1 Passenger</option>
+          <option value="2">2 Passengers</option>
+          <option value="3">3 Passengers</option>
+          <option value="4">4 Passengers</option>
+          <option value="5">5 Passengers</option>
+          <option value="6">6 Passengers</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Additional Stops</label>
+        <input type="text" id="extraStops" placeholder="Optional: any stops along the way">
+      </div>
+      <div class="form-group full-width">
+        <label>Special Requests / Notes</label>
+        <textarea id="notes" placeholder="Child seats, accessibility needs, luggage, event details..."></textarea>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Profile Preferences -->
+    <div class="section-label"><span class="icon">&#11088;</span> Profile &amp; Preferences <span style="font-size:13px;font-weight:400;color:var(--muted)">(optional — saves to your customer record)</span></div>
+    <div class="form-grid">
+      <div class="form-group full-width">
+        <label>Saved Home Address</label>
+        <input type="text" id="homeAddr" placeholder="Your home address for faster future bookings">
+      </div>
+      <div class="form-group full-width">
+        <label>Saved Work Address</label>
+        <input type="text" id="workAddr" placeholder="Your work address for commute bookings">
+      </div>
+      <div class="form-group full-width">
+        <label>Vehicle / Ride Preferences</label>
+        <input type="text" id="preferences" placeholder="e.g., Prefer SUV, quiet ride, temperature preference">
+      </div>
+    </div>
+    <div class="mt-16">
+      <label class="checkbox-row">
+        <input type="checkbox" id="isVeteran">
+        <span>I am a veteran or first responder</span>
+        <span class="discount-badge">10% off</span>
+      </label>
+    </div>
+    <div class="mt-8">
+      <label class="checkbox-row">
+        <input type="checkbox" id="isNonprofit">
+        <span>I am a non-profit service provider or community volunteer</span>
+        <span class="discount-badge">10% off</span>
+      </label>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToStep(2)">&larr; Back</button>
+      <button class="btn btn-primary" id="step3Next" onclick="prepareReview(); goToStep(4)">Review &amp; Pay &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4: REVIEW & PAY ═══ -->
+  <div class="booking-panel" id="panel-4">
+    <div class="review-layout">
+      <div>
+        <div class="section-label"><span class="icon">&#128179;</span> Choose Payment Method</div>
+        <div class="payment-options">
+          <label class="payment-option selected" onclick="selectPayment('now')">
+            <input type="radio" name="payMethod" value="now" checked>
+            <div>
+              <div class="po-title">Pay Now with Card</div>
+              <div class="po-desc">Pay securely with credit or debit card via Square. Your booking is confirmed instantly.</div>
+            </div>
+          </label>
+          <label class="payment-option" onclick="selectPayment('invoice')">
+            <input type="radio" name="payMethod" value="invoice">
+            <div>
+              <div class="po-title">Book Now, Pay by Invoice</div>
+              <div class="po-desc">We'll send a Square invoice to your email. Pay before your trip at your convenience.</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Square Card Input (pay now) -->
+        <div id="card-container" class="mt-16">
+          <div class="square-placeholder">
+            <strong>Square Card Input</strong><br>
+            <span style="font-size:12px">Connect your Square Application ID and Location ID to activate live payments.<br>
+            The Square Web Payments SDK will render a secure card form here.</span>
+          </div>
+        </div>
+        <div id="invoice-note" class="hidden mt-16" style="padding:16px;background:var(--card);border-radius:6px;font-size:14px;color:var(--muted);">
+          A Square invoice will be sent to <strong id="invoiceEmail" class="text-gold"></strong> after you confirm your booking. Please pay the invoice before your scheduled trip.
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="goToStep(3)">&larr; Back</button>
+          <button class="btn btn-primary" id="confirmBtn" onclick="confirmBooking()">Confirm &amp; Book</button>
+        </div>
+      </div>
+
+      <!-- Booking Summary -->
+      <div class="summary-card">
+        <h3>Booking Summary</h3>
+        <div class="summary-row"><span class="label">Service</span><span class="value" id="sumService">—</span></div>
+        <div class="summary-row"><span class="label">Date</span><span class="value" id="sumDate">—</span></div>
+        <div class="summary-row"><span class="label">Time</span><span class="value" id="sumTime">—</span></div>
+        <div class="summary-row"><span class="label">Pickup</span><span class="value" id="sumPickup">—</span></div>
+        <div class="summary-row"><span class="label">Dropoff</span><span class="value" id="sumDropoff">—</span></div>
+        <div class="summary-row"><span class="label">Passengers</span><span class="value" id="sumPassengers">—</span></div>
+        <div class="summary-row" id="sumDiscountRow" class="hidden"><span class="label">Discount</span><span class="value text-gold" id="sumDiscount">—</span></div>
+        <div class="summary-total">
+          <span>Total</span>
+          <span class="amount" id="sumTotal">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5: CONFIRMATION ═══ -->
+  <div class="booking-panel" id="panel-5">
+    <div class="confirmation-panel">
+      <div class="confirm-icon">&#10003;</div>
+      <h2>Booking Confirmed!</h2>
+      <p class="conf-sub" id="confMessage">You're all set. A confirmation has been sent to your email.</p>
+      <div class="conf-details">
+        <div class="cd-row"><span class="cd-label">Service</span><span class="cd-value" id="confService">—</span></div>
+        <div class="cd-row"><span class="cd-label">Date &amp; Time</span><span class="cd-value" id="confDateTime">—</span></div>
+        <div class="cd-row"><span class="cd-label">Pickup</span><span class="cd-value" id="confPickup">—</span></div>
+        <div class="cd-row"><span class="cd-label">Dropoff</span><span class="cd-value" id="confDropoff">—</span></div>
+        <div class="cd-row"><span class="cd-label">Passengers</span><span class="cd-value" id="confPassengers">—</span></div>
+        <div class="cd-row"><span class="cd-label">Total</span><span class="cd-value text-gold" id="confTotal">—</span></div>
+        <div class="cd-row"><span class="cd-label">Payment</span><span class="cd-value" id="confPayment">—</span></div>
+        <div class="cd-row"><span class="cd-label">Confirmation #</span><span class="cd-value text-gold" id="confNumber">—</span></div>
+      </div>
+      <button class="btn btn-outline-gold" onclick="location.reload()">Book Another Ride</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="site-footer">
+  &copy; 2026 Patriot Elite Logistics. All rights reserved. &nbsp;|&nbsp;
+  <a href="https://www.patriotelitelogistics.com/privacy-policy">Privacy Policy</a> &nbsp;|&nbsp;
+  <a href="https://www.patriotelitelogistics.com/terms-of-service">Terms of Service</a>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════
+     SQUARE WEB PAYMENTS SDK
+     Sandbox URL is loaded by default. For production,
+     switch to: https://web.squarecdn.com/v1/square.js
+     ═══════════════════════════════════════════════════ -->
+<script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+<!-- For production, replace the line above with:
+<script src="https://web.squarecdn.com/v1/square.js"></script>
+-->
+
+<script>
+// ══════════════════════════════════════
+// CONFIGURATION — Set your Square IDs
+// and your backend API URL
+// ══════════════════════════════════════
+const SQUARE_APP_ID    = 'sandbox-sq0idb-8aBi2iW6mUiql7bJjctiIg';
+const SQUARE_LOCATION  = 'LQ2X1WKSWZ4X0';
+const API_BASE         = '';  // Same server serves both site and API — no URL needed
+const USE_SANDBOX      = true;                // Set false for production
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const state = {
+  step: 1,
+  service: null,
+  date: null,
+  time: null,
+  payMethod: 'now',
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
+};
+
+const services = {
+  hourly:   { name: 'Hourly Limo Service',  price: 135,  unit: '/hr',  priceDisplay: '$135' },
+  daily:    { name: 'Daily Limo Service',    price: 1000, unit: '/8hr', priceDisplay: '$1,000' },
+  standard: { name: 'Standard Livery',       price: null, unit: '/mi',  priceDisplay: 'Quote at trip end' },
+  event:    { name: 'Event Shuttle',         price: null, unit: '',     priceDisplay: 'Custom Quote' },
+};
+
+const timeSlots = [
+  '8:00 AM','9:00 AM','10:00 AM','11:00 AM',
+  '12:00 PM','1:00 PM','2:00 PM','3:00 PM',
+  '4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'
+];
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function goToStep(n) {
+  // Validate before advancing
+  if (n > state.step + 1) return;
+  if (n >= 2 && !state.service) return;
+  if (n >= 3 && (!state.date || !state.time)) return;
+  if (n >= 4) {
+    if (!validateStep3()) return;
+  }
+
+  state.step = n;
+  document.querySelectorAll('.booking-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById('panel-' + n);
+  if (panel) panel.classList.add('active');
+
+  document.querySelectorAll('.progress-step').forEach(s => {
+    const sn = +s.dataset.step;
+    s.classList.remove('active', 'completed');
+    if (sn === n) s.classList.add('active');
+    else if (sn < n) s.classList.add('completed');
+  });
+
+  if (n === 2) renderCalendar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ══════════════════════════════════════
+// STEP 1: SERVICE
+// ══════════════════════════════════════
+function selectService(card) {
+  document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  state.service = card.dataset.service;
+  document.getElementById('step1Next').disabled = false;
+}
+
+// ══════════════════════════════════════
+// STEP 2: CALENDAR
+// ══════════════════════════════════════
+function renderCalendar() {
+  const year = state.calYear;
+  const month = state.calMonth;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthYear').textContent = monthNames[month] + ' ' + year;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  dows.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('button');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const el = document.createElement('button');
+    el.className = 'cal-day';
+    el.textContent = d;
+    const thisDate = new Date(year, month, d);
+    if (thisDate < today) {
+      el.classList.add('disabled');
+    } else {
+      if (thisDate.getTime() === today.getTime()) el.classList.add('today');
+      if (state.date && state.date.getTime() === thisDate.getTime()) el.classList.add('selected');
+      el.onclick = () => selectDate(thisDate);
+    }
+    grid.appendChild(el);
+  }
+
+  renderTimeSlots();
+}
+
+function changeMonth(delta) {
+  state.calMonth += delta;
+  if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+  if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
+  renderCalendar();
+}
+
+function selectDate(d) {
+  state.date = d;
+  state.time = null;
+  document.getElementById('step2Next').disabled = true;
+  renderCalendar();
+}
+
+function renderTimeSlots() {
+  const grid = document.getElementById('timeGrid');
+  grid.innerHTML = '';
+  if (!state.date) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px;font-size:14px;">Select a date to see available times</div>';
+    return;
+  }
+  timeSlots.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'time-slot';
+    if (state.time === t) btn.classList.add('selected');
+    btn.textContent = t;
+    btn.onclick = () => { state.time = t; renderTimeSlots(); document.getElementById('step2Next').disabled = false; };
+    grid.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════
+// STEP 3: VALIDATION
+// ══════════════════════════════════════
+function validateStep3() {
+  const fields = ['firstName','lastName','email','phone','pickupAddr','dropoffAddr'];
+  let valid = true;
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el.value.trim()) {
+      el.style.borderColor = 'var(--danger)';
+      valid = false;
+    } else {
+      el.style.borderColor = 'var(--border)';
+    }
+  });
+  return valid;
+}
+
+// ══════════════════════════════════════
+// STEP 4: REVIEW
+// ══════════════════════════════════════
+function prepareReview() {
+  const svc = services[state.service];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr = monthNames[state.date.getMonth()] + ' ' + state.date.getDate() + ', ' + state.date.getFullYear();
+  const hasDiscount = document.getElementById('isVeteran').checked || document.getElementById('isNonprofit').checked;
+
+  document.getElementById('sumService').textContent = svc.name;
+  document.getElementById('sumDate').textContent = dateStr;
+  document.getElementById('sumTime').textContent = state.time;
+  document.getElementById('sumPickup').textContent = document.getElementById('pickupAddr').value;
+  document.getElementById('sumDropoff').textContent = document.getElementById('dropoffAddr').value;
+  document.getElementById('sumPassengers').textContent = document.getElementById('passengers').value;
+
+  const discountRow = document.getElementById('sumDiscountRow');
+  if (hasDiscount && svc.price) {
+    discountRow.classList.remove('hidden');
+    document.getElementById('sumDiscount').textContent = '-10%';
+    const total = svc.price * 0.9;
+    document.getElementById('sumTotal').textContent = '$' + total.toFixed(2);
+  } else {
+    discountRow.classList.add('hidden');
+    document.getElementById('sumTotal').textContent = svc.price ? ('$' + svc.price.toFixed(2)) : svc.priceDisplay;
+  }
+
+  document.getElementById('invoiceEmail').textContent = document.getElementById('email').value;
+}
+
+function selectPayment(method) {
+  state.payMethod = method;
+  document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('card-container').classList.toggle('hidden', method === 'invoice');
+  document.getElementById('invoice-note').classList.toggle('hidden', method === 'now');
+  document.getElementById('confirmBtn').textContent = method === 'now' ? 'Pay & Confirm Booking' : 'Confirm & Send Invoice';
+}
+
+// ══════════════════════════════════════
+// SQUARE WEB PAYMENTS SDK INIT
+// ══════════════════════════════════════
+let squareCard = null;
+
+async function initSquarePayments() {
+  if (!window.Square) {
+    console.warn('Square SDK not loaded — card payments will not work until you add your Application ID.');
+    return;
+  }
+  try {
+    const payments = Square.payments(SQUARE_APP_ID, SQUARE_LOCATION);
+    squareCard = await payments.card();
+    // Clear the placeholder and attach the real card form
+    document.getElementById('card-container').innerHTML = '';
+    await squareCard.attach('#card-container');
+    console.log('Square card form initialized.');
+  } catch (err) {
+    console.error('Square init error:', err);
+  }
+}
+document.addEventListener('DOMContentLoaded', initSquarePayments);
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function getBookingData() {
+  const svc = services[state.service];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateStr = monthNames[state.date.getMonth()] + ' ' + state.date.getDate() + ', ' + state.date.getFullYear();
+  const hasDiscount = document.getElementById('isVeteran').checked || document.getElementById('isNonprofit').checked;
+  const priceNum = svc.price ? (hasDiscount ? svc.price * 0.9 : svc.price) : null;
+  const priceDisplay = priceNum ? ('$' + priceNum.toFixed(2)) : svc.priceDisplay;
+  const amountCents = priceNum ? Math.round(priceNum * 100) : null;
+
+  return {
+    svc, dateStr, hasDiscount, priceNum, priceDisplay, amountCents,
+    firstName:  document.getElementById('firstName').value.trim(),
+    lastName:   document.getElementById('lastName').value.trim(),
+    email:      document.getElementById('email').value.trim(),
+    phone:      document.getElementById('phone').value.trim(),
+    pickup:     document.getElementById('pickupAddr').value.trim(),
+    dropoff:    document.getElementById('dropoffAddr').value.trim(),
+    passengers: document.getElementById('passengers').value,
+    notes:      document.getElementById('notes').value.trim(),
+    homeAddr:   document.getElementById('homeAddr').value.trim(),
+    workAddr:   document.getElementById('workAddr').value.trim(),
+    prefs:      document.getElementById('preferences').value.trim(),
+    isVeteran:  document.getElementById('isVeteran').checked,
+    isNonprofit:document.getElementById('isNonprofit').checked,
+  };
+}
+
+function showConfirmation(data, confNum, payLabel) {
+  document.getElementById('confService').textContent = data.svc.name;
+  document.getElementById('confDateTime').textContent = data.dateStr + ' at ' + state.time;
+  document.getElementById('confPickup').textContent = data.pickup;
+  document.getElementById('confDropoff').textContent = data.dropoff;
+  document.getElementById('confPassengers').textContent = data.passengers;
+  document.getElementById('confTotal').textContent = data.priceDisplay;
+  document.getElementById('confPayment').textContent = payLabel;
+  document.getElementById('confNumber').textContent = confNum;
+  document.getElementById('confMessage').textContent = state.payMethod === 'now'
+    ? 'Payment received! A confirmation has been sent to ' + data.email + '.'
+    : 'Your booking is confirmed. A Square invoice has been sent to ' + data.email + '.';
+
+  document.querySelectorAll('.booking-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-5').classList.add('active');
+  document.querySelectorAll('.progress-step').forEach(s => s.classList.add('completed'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setLoading(loading) {
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Processing...' : (state.payMethod === 'now' ? 'Pay & Confirm Booking' : 'Confirm & Send Invoice');
+}
+
+async function apiPost(endpoint, body) {
+  const resp = await fetch(API_BASE + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const json = await resp.json();
+  if (!resp.ok || !json.success) {
+    throw new Error(json.error || 'API request failed');
+  }
+  return json;
+}
+
+// ══════════════════════════════════════
+// CONFIRM BOOKING
+// Full flow: Customer → Pay/Invoice → Confirmation
+// ══════════════════════════════════════
+async function confirmBooking() {
+  const data = getBookingData();
+  setLoading(true);
+
+  try {
+    // ── Step 1: Create or update the customer record ──
+    const customerResult = await apiPost('/api/customer', {
+      firstName:   data.firstName,
+      lastName:    data.lastName,
+      email:       data.email,
+      phone:       data.phone,
+      homeAddress: data.homeAddr,
+      workAddress: data.workAddr,
+      preferences: data.prefs,
+      isVeteran:   data.isVeteran,
+      isNonprofit: data.isNonprofit,
+    });
+
+    const customerId = customerResult.customerId;
+    const bookingInfo = {
+      service:    data.svc.name,
+      date:       data.dateStr,
+      time:       state.time,
+      pickup:     data.pickup,
+      dropoff:    data.dropoff,
+      passengers: data.passengers,
+    };
+
+    // ── Step 2: Pay now or send invoice ──
+    if (state.payMethod === 'now') {
+      // Tokenize the card
+      if (!squareCard) {
+        alert('Card form is not initialized. Please check your Square credentials.');
+        setLoading(false);
+        return;
+      }
+      const tokenResult = await squareCard.tokenize();
+      if (tokenResult.status !== 'OK') {
+        alert('Card validation failed. Please check your card details and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Process payment
+      if (!data.amountCents) {
+        alert('This service requires a custom quote. Please choose "Book Now, Pay by Invoice" instead.');
+        setLoading(false);
+        return;
+      }
+
+      const payResult = await apiPost('/api/pay', {
+        sourceId:    tokenResult.token,
+        amountCents: data.amountCents,
+        customerId:  customerId,
+        booking:     bookingInfo,
+      });
+
+      showConfirmation(data, payResult.confirmationId, 'Paid via card');
+
+    } else {
+      // Send invoice
+      const invoiceResult = await apiPost('/api/invoice', {
+        customerId:  customerId,
+        amountCents: data.amountCents, // null for custom-quote services
+        serviceName: data.svc.name,
+        booking:     bookingInfo,
+        email:       data.email,
+      });
+
+      showConfirmation(data, invoiceResult.confirmationId, 'Invoice sent to email');
+    }
+
+  } catch (err) {
+    console.error('Booking error:', err);
+    alert('Something went wrong: ' + err.message + '\n\nPlease try again or call (520) 200-7141 for assistance.');
+    setLoading(false);
+  }
+}
+</script>
+
+</body>
+</html>
