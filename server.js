@@ -44,6 +44,61 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'patriot-elite-booking' });
 });
 
+// ═══════════════════════════════════════════════════════════════
+// GET /api/debug/catalog
+// Temporary endpoint to see everything in the Square catalog.
+// Remove this once services are loading correctly.
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/debug/catalog', async (_req, res) => {
+  try {
+    const results = {};
+
+    // Try every catalog type
+    const types = ['ITEM', 'ITEM_VARIATION', 'SERVICE', 'APPOINTMENT_SERVICE', 'SUBSCRIPTION_PLAN'];
+    for (const type of types) {
+      try {
+        const result = await catalogApi.listCatalog(undefined, type);
+        results[type] = (result.result.objects || []).map(obj => ({
+          id: obj.id,
+          type: obj.type,
+          name: obj.itemData?.name || obj.itemVariationData?.name || '(no name)',
+          productType: obj.itemData?.productType || null,
+          isDeleted: obj.isDeleted || false,
+        }));
+      } catch (e) {
+        results[type] = 'Error: ' + (e.message || 'unknown');
+      }
+    }
+
+    // Also try listing with no type filter at all
+    try {
+      const allResult = await catalogApi.listCatalog(undefined);
+      results['ALL_UNFILTERED'] = (allResult.result.objects || []).map(obj => ({
+        id: obj.id,
+        type: obj.type,
+        name: obj.itemData?.name || obj.itemVariationData?.name || obj.categoryData?.name || '(no name)',
+        productType: obj.itemData?.productType || null,
+      }));
+    } catch (e) {
+      results['ALL_UNFILTERED'] = 'Error: ' + (e.message || 'unknown');
+    }
+
+    // Try the bookings API if available
+    try {
+      const bookingsApi = squareClient.bookingsApi;
+      const teamApi = squareClient.teamApi;
+      results['HAS_BOOKINGS_API'] = !!bookingsApi;
+      results['HAS_TEAM_API'] = !!teamApi;
+    } catch (e) {
+      results['BOOKINGS_CHECK'] = 'Error: ' + e.message;
+    }
+
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // ═══════════════════════════════════════════════════════════════
 // GET /api/services
