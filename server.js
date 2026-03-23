@@ -52,17 +52,46 @@ app.get('/api/health', (_req, res) => {
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/services', async (_req, res) => {
   try {
-    // Fetch all active ITEM types from the Square catalog
-    const result = await catalogApi.listCatalog(undefined, 'ITEM');
-    const items = result.result.objects || [];
+    // Fetch ALL catalog items (ITEM covers both products and services)
+    // Also fetch APPOINTMENT_SERVICE type if available
+    const allItems = [];
+
+    // Fetch standard catalog items
+    let cursor = undefined;
+    do {
+      const result = await catalogApi.listCatalog(cursor, 'ITEM');
+      const objects = result.result.objects || [];
+      allItems.push(...objects);
+      cursor = result.result.cursor;
+    } while (cursor);
+
+    // Also try to fetch via Square Appointments (bookings) API
+    // Square services from the Service Library use the catalog but
+    // have itemData.productType === 'APPOINTMENTS_SERVICE'
+    // They should already be in the ITEM list above, but let's also
+    // try a search to catch everything
+    try {
+      const searchResult = await catalogApi.searchCatalogItems({
+        productTypes: ['APPOINTMENTS_SERVICE'],
+      });
+      const searchItems = searchResult.result.items || [];
+      // Add any items not already in our list
+      const existingIds = new Set(allItems.map(i => i.id));
+      for (const item of searchItems) {
+        if (!existingIds.has(item.id)) {
+          allItems.push(item);
+        }
+      }
+    } catch (searchErr) {
+      // searchCatalogItems may not be available in all Square plans
+      console.log('Note: searchCatalogItems not available, using listCatalog only.');
+    }
 
     // Map Square catalog items into a clean format for the frontend
-    const services = items
+    const services = allItems
       .filter(item => {
-        // Only include items that are present at this location
         const data = item.itemData;
         if (!data) return false;
-        // Skip archived/deleted items
         if (item.isDeleted) return false;
         return true;
       })
@@ -70,6 +99,9 @@ app.get('/api/services', async (_req, res) => {
         const data = item.itemData;
         const variation = data.variations && data.variations[0];
         const priceMoney = variation?.itemVariationData?.priceMoney;
+
+        // Also check serviceDuration for appointment services
+        const duration = variation?.itemVariationData?.serviceDuration;
 
         // Price in cents → dollars
         let priceCents = null;
@@ -82,16 +114,30 @@ app.get('/api/services', async (_req, res) => {
           priceDisplay = '$' + dollars.toLocaleString('en-US', { minimumFractionDigits: dollars % 1 ? 2 : 0 });
         }
 
+        // If it has a duration, add that info
+        if (duration) {
+          const minutes = Number(duration) / 60000; // duration is in milliseconds
+          if (minutes >= 60) {
+            pricePerUnit = `/ ${Math.round(minutes / 60)} hr`;
+          } else {
+            pricePerUnit = `/ ${Math.round(minutes)} min`;
+          }
+        }
+
         return {
           id:           item.id,
           variationId:  variation?.id || null,
           name:         data.name || 'Service',
-          description:  data.description || '',
+          description:  data.description || data.descriptionPlaintext || '',
           priceCents:   priceCents,
           priceDisplay: priceDisplay,
           pricePerUnit: pricePerUnit,
+          productType:  data.productType || 'REGULAR',
         };
       });
+
+    // Log what we found for debugging
+    console.log(`Catalog: found ${allItems.length} total items, ${services.length} active services`);
 
     res.json({ success: true, services });
 
