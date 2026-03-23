@@ -83,14 +83,40 @@ app.get('/api/debug/catalog', async (_req, res) => {
       results['ALL_UNFILTERED'] = 'Error: ' + (e.message || 'unknown');
     }
 
-    // Try the bookings API if available
+    // Try the bookings API to list services
     try {
       const bookingsApi = squareClient.bookingsApi;
-      const teamApi = squareClient.teamApi;
       results['HAS_BOOKINGS_API'] = !!bookingsApi;
-      results['HAS_TEAM_API'] = !!teamApi;
+
+      // Try to list booking services via catalog search for APPOINTMENTS_SERVICE
+      const searchResult = await catalogApi.searchCatalogObjects({
+        objectTypes: ['ITEM'],
+        query: {
+          exactQuery: {
+            attributeName: 'item_data.product_type',
+            attributeValue: 'APPOINTMENTS_SERVICE',
+          },
+        },
+      });
+      results['APPOINTMENTS_SEARCH'] = (searchResult.result.objects || []).map(obj => ({
+        id: obj.id,
+        name: obj.itemData?.name,
+        productType: obj.itemData?.productType,
+      }));
     } catch (e) {
-      results['BOOKINGS_CHECK'] = 'Error: ' + e.message;
+      results['APPOINTMENTS_SEARCH'] = 'Error: ' + (e.message || 'unknown');
+    }
+
+    // Try listing locations to verify the token works at all
+    try {
+      const locResult = await squareClient.locationsApi.listLocations();
+      results['LOCATIONS'] = (locResult.result.locations || []).map(loc => ({
+        id: loc.id,
+        name: loc.name,
+        status: loc.status,
+      }));
+    } catch (e) {
+      results['LOCATIONS'] = 'Error: ' + (e.message || 'unknown');
     }
 
     res.json(results);
