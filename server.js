@@ -28,6 +28,7 @@ const paymentsApi  = squareClient.paymentsApi;
 const invoicesApi  = squareClient.invoicesApi;
 const ordersApi    = squareClient.ordersApi;
 const customersApi = squareClient.customersApi;
+const catalogApi   = squareClient.catalogApi;
 
 const LOCATION_ID = process.env.SQUARE_LOCATION_ID;
 
@@ -41,6 +42,67 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'patriot-elite-booking' });
+});
+
+
+// ═══════════════════════════════════════════════════════════════
+// GET /api/services
+// Fetch services from your Square Catalog so the booking page
+// always shows your current offerings and prices.
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/services', async (_req, res) => {
+  try {
+    // Fetch all active ITEM types from the Square catalog
+    const result = await catalogApi.listCatalog(undefined, 'ITEM');
+    const items = result.result.objects || [];
+
+    // Map Square catalog items into a clean format for the frontend
+    const services = items
+      .filter(item => {
+        // Only include items that are present at this location
+        const data = item.itemData;
+        if (!data) return false;
+        // Skip archived/deleted items
+        if (item.isDeleted) return false;
+        return true;
+      })
+      .map(item => {
+        const data = item.itemData;
+        const variation = data.variations && data.variations[0];
+        const priceMoney = variation?.itemVariationData?.priceMoney;
+
+        // Price in cents → dollars
+        let priceCents = null;
+        let priceDisplay = 'Custom Quote';
+        let pricePerUnit = '';
+
+        if (priceMoney && priceMoney.amount) {
+          priceCents = Number(priceMoney.amount);
+          const dollars = priceCents / 100;
+          priceDisplay = '$' + dollars.toLocaleString('en-US', { minimumFractionDigits: dollars % 1 ? 2 : 0 });
+        }
+
+        return {
+          id:           item.id,
+          variationId:  variation?.id || null,
+          name:         data.name || 'Service',
+          description:  data.description || '',
+          priceCents:   priceCents,
+          priceDisplay: priceDisplay,
+          pricePerUnit: pricePerUnit,
+        };
+      });
+
+    res.json({ success: true, services });
+
+  } catch (error) {
+    console.error('Catalog API error:', JSON.stringify(error.result || error.message, null, 2));
+    res.status(500).json({
+      success: false,
+      error:   'Failed to load services from Square.',
+      detail:  error.result?.errors || error.message,
+    });
+  }
 });
 
 
