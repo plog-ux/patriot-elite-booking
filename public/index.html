@@ -675,31 +675,8 @@
   <!-- ═══ STEP 1: SERVICE SELECTION ═══ -->
   <div class="booking-panel active" id="panel-1">
     <div class="section-label"><span class="icon">&#128663;</span> Choose Your Service</div>
-    <div class="service-grid">
-      <div class="service-card" data-service="hourly" onclick="selectService(this)">
-        <div class="svc-icon">&#128338;</div>
-        <h3>Hourly Limo Service</h3>
-        <div class="svc-price">$135<span style="font-size:14px;color:var(--muted)"> /hr</span></div>
-        <div class="svc-detail">Up to 6 passengers. Perfect for events, date nights, or airport runs.</div>
-      </div>
-      <div class="service-card" data-service="daily" onclick="selectService(this)">
-        <div class="svc-icon">&#128197;</div>
-        <h3>Daily Limo Service</h3>
-        <div class="svc-price">$1,000<span style="font-size:14px;color:var(--muted)"> /8 hrs</span></div>
-        <div class="svc-detail">Full-day block. Ideal for corporate on-sites, weddings, or VIP transport.</div>
-      </div>
-      <div class="service-card" data-service="standard" onclick="selectService(this)">
-        <div class="svc-icon">&#128664;</div>
-        <h3>Standard Livery</h3>
-        <div class="svc-price">$1.50<span style="font-size:14px;color:var(--muted)"> /mi</span></div>
-        <div class="svc-detail">$20 origin fee + $10/stop + mileage. Our most flexible option.</div>
-      </div>
-      <div class="service-card" data-service="event" onclick="selectService(this)">
-        <div class="svc-icon">&#127881;</div>
-        <h3>Event Shuttle</h3>
-        <div class="svc-price">Custom Quote</div>
-        <div class="svc-detail">Round-trip shuttle for concerts, shows, and special events. Contact for pricing.</div>
-      </div>
+    <div class="service-grid" id="serviceGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);">Loading services from Square...</div>
     </div>
     <div class="btn-row">
       <div></div>
@@ -945,18 +922,70 @@ const state = {
   calMonth: new Date().getMonth(),
 };
 
-const services = {
-  hourly:   { name: 'Hourly Limo Service',  price: 135,  unit: '/hr',  priceDisplay: '$135' },
-  daily:    { name: 'Daily Limo Service',    price: 1000, unit: '/8hr', priceDisplay: '$1,000' },
-  standard: { name: 'Standard Livery',       price: null, unit: '/mi',  priceDisplay: 'Quote at trip end' },
-  event:    { name: 'Event Shuttle',         price: null, unit: '',     priceDisplay: 'Custom Quote' },
-};
+// Services loaded dynamically from Square Catalog API
+let services = {};
+
+const serviceIcons = ['&#128338;', '&#128197;', '&#128664;', '&#127881;', '&#128663;', '&#11088;'];
 
 const timeSlots = [
   '8:00 AM','9:00 AM','10:00 AM','11:00 AM',
   '12:00 PM','1:00 PM','2:00 PM','3:00 PM',
   '4:00 PM','5:00 PM','6:00 PM','7:00 PM','8:00 PM'
 ];
+
+// ══════════════════════════════════════
+// LOAD SERVICES FROM SQUARE
+// ══════════════════════════════════════
+async function loadServices() {
+  const grid = document.getElementById('serviceGrid');
+  try {
+    const resp = await fetch(API_BASE + '/api/services');
+    const data = await resp.json();
+    if (!data.success || !data.services.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);">No services found. Please add services to your Square catalog.</div>';
+      return;
+    }
+
+    // Store services keyed by Square catalog ID
+    services = {};
+    data.services.forEach(svc => {
+      services[svc.id] = {
+        name:         svc.name,
+        price:        svc.priceCents ? svc.priceCents / 100 : null,
+        priceCents:   svc.priceCents,
+        priceDisplay: svc.priceDisplay,
+        variationId:  svc.variationId,
+        description:  svc.description,
+      };
+    });
+
+    // Render service cards
+    grid.innerHTML = '';
+    let iconIndex = 0;
+    for (const [id, svc] of Object.entries(services)) {
+      const icon = serviceIcons[iconIndex % serviceIcons.length];
+      iconIndex++;
+      const card = document.createElement('div');
+      card.className = 'service-card';
+      card.dataset.service = id;
+      card.onclick = function() { selectService(this); };
+      card.innerHTML = `
+        <div class="svc-icon">${icon}</div>
+        <h3>${svc.name}</h3>
+        <div class="svc-price">${svc.priceDisplay}</div>
+        <div class="svc-detail">${svc.description || ''}</div>
+      `;
+      grid.appendChild(card);
+    }
+
+  } catch (err) {
+    console.error('Failed to load services:', err);
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--danger);">Unable to load services. Please refresh or call (520) 200-7141.</div>';
+  }
+}
+
+// Load services on page load
+document.addEventListener('DOMContentLoaded', loadServices);
 
 // ══════════════════════════════════════
 // NAVIGATION
