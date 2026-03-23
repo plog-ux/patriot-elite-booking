@@ -890,24 +890,19 @@
 </footer>
 
 <!-- ═══════════════════════════════════════════════════
-     SQUARE WEB PAYMENTS SDK
-     Sandbox URL is loaded by default. For production,
-     switch to: https://web.squarecdn.com/v1/square.js
+     SQUARE WEB PAYMENTS SDK (Production)
      ═══════════════════════════════════════════════════ -->
-<script src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
-<!-- For production, replace the line above with:
 <script src="https://web.squarecdn.com/v1/square.js"></script>
--->
 
 <script>
 // ══════════════════════════════════════
 // CONFIGURATION — Set your Square IDs
 // and your backend API URL
 // ══════════════════════════════════════
-const SQUARE_APP_ID    = 'sandbox-sq0idb-8aBi2iW6mUiql7bJjctiIg';
-const SQUARE_LOCATION  = 'LQ2X1WKSWZ4X0';
+const SQUARE_APP_ID    = 'sq0idp-G6vcBhjDteG9gJsKZZRmYA';
+const SQUARE_LOCATION  = 'LF4539874H4KD';
 const API_BASE         = '';  // Same server serves both site and API — no URL needed
-const USE_SANDBOX      = true;                // Set false for production
+const USE_SANDBOX      = false;               // Production mode
 
 // ══════════════════════════════════════
 // STATE
@@ -1311,6 +1306,7 @@ async function confirmBooking() {
         amountCents: data.amountCents,
         customerId:  customerId,
         booking:     bookingInfo,
+        customer:    { name: data.firstName + ' ' + data.lastName, email: data.email, phone: data.phone },
       });
 
       showConfirmation(data, payResult.confirmationId, 'Paid via card');
@@ -1323,6 +1319,7 @@ async function confirmBooking() {
         serviceName: data.svc.name,
         booking:     bookingInfo,
         email:       data.email,
+        customer:    { name: data.firstName + ' ' + data.lastName, email: data.email, phone: data.phone },
       });
 
       showConfirmation(data, invoiceResult.confirmationId, 'Invoice sent to email');
