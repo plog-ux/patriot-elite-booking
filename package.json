@@ -9,6 +9,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "googleapis": "^144.0.0",
     "square": "^39.1.0",
     "uuid": "^11.1.0"
   },
