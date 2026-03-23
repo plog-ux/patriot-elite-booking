@@ -6,6 +6,7 @@
 //   - Handles card payments via Square
 //   - Creates and sends Square invoices
 //   - Manages customer records in Square
+//   - Creates Google Calendar events for each booking
 //
 // Deploy to Railway, Render, or any Node.js host.
 // ═══════════════════════════════════════════════════════════════════
@@ -15,6 +16,7 @@ const path     = require('path');
 const express  = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { Client, Environment } = require('square');
+const { google } = require('googleapis');
 
 // ── Square client ──────────────────────────────────────────────
 const squareClient = new Client({
@@ -32,6 +34,130 @@ const catalogApi   = squareClient.catalogApi;
 
 const LOCATION_ID = process.env.SQUARE_LOCATION_ID;
 
+// ── Google Calendar setup (optional) ──────────────────────────
+// Uses OAuth2 with a refresh token so your booking@p-log.org
+// calendar gets events automatically. If credentials aren't set,
+// everything else still works normally.
+let calendarClient = null;
+const GOOGLE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || 'booking@p-log.org';
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
+  try {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+    );
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+    });
+    calendarClient = google.calendar({ version: 'v3', auth: oauth2Client });
+    console.log('Google Calendar integration: ENABLED');
+  } catch (err) {
+    console.warn('Google Calendar setup failed (bookings will still work):', err.message);
+  }
+} else {
+  console.log('Google Calendar integration: DISABLED (no credentials set)');
+}
+
+/**
+ * Create a Google Calendar event for a new booking.
+ * Silently skips if calendar isn't configured — never blocks a booking.
+ */
+async function createCalendarEvent({ service, date, time, pickup, dropoff, passengers, customerName, customerEmail, customerPhone, notes, confirmationId, paymentMethod }) {
+  if (!calendarClient) return null;
+
+  try {
+    // Parse the booking date and time into a proper DateTime
+    // date comes in as "March 25, 2026" or similar, time as "10:00 AM"
+    const eventStart = parseBookingDateTime(date, time);
+    if (!eventStart) {
+      console.warn('Calendar: Could not parse date/time, skipping event creation.');
+      return null;
+    }
+
+    // Default to 1-hour event (can be adjusted per service later)
+    const eventEnd = new Date(eventStart.getTime() + 60 * 60 * 1000);
+
+    const description = [
+      `Confirmation: ${confirmationId}`,
+      `Service: ${service}`,
+      `Customer: ${customerName}`,
+      `Email: ${customerEmail}`,
+      customerPhone ? `Phone: ${customerPhone}` : null,
+      `Passengers: ${passengers}`,
+      `Pickup: ${pickup}`,
+      `Dropoff: ${dropoff}`,
+      notes ? `Notes: ${notes}` : null,
+      `Payment: ${paymentMethod}`,
+    ].filter(Boolean).join('\n');
+
+    const event = {
+      summary:     `${service} — ${customerName}`,
+      location:    pickup || '',
+      description: description,
+      start: {
+        dateTime: eventStart.toISOString(),
+        timeZone: 'America/Phoenix',
+      },
+      end: {
+        dateTime: eventEnd.toISOString(),
+        timeZone: 'America/Phoenix',
+      },
+      // Color: Banana (yellow) to stand out as a booking
+      colorId: '5',
+    };
+
+    const result = await calendarClient.events.insert({
+      calendarId: GOOGLE_CALENDAR_ID,
+      resource: event,
+    });
+
+    console.log(`Calendar event created: ${result.data.htmlLink}`);
+    return result.data.htmlLink;
+
+  } catch (err) {
+    // Never let a calendar error block a booking
+    console.error('Calendar event creation failed (booking still succeeded):', err.message);
+    return null;
+  }
+}
+
+/**
+ * Parse booking date + time strings into a JS Date.
+ * Handles formats like "March 25, 2026" + "10:00 AM"
+ */
+function parseBookingDateTime(dateStr, timeStr) {
+  try {
+    if (!dateStr || !timeStr) return null;
+
+    // Combine and let Date.parse handle it
+    const combined = `${dateStr} ${timeStr}`;
+    const d = new Date(combined);
+    if (!isNaN(d.getTime())) return d;
+
+    // Fallback: try ISO-style date + time
+    const isoAttempt = new Date(`${dateStr}T${convertTo24Hour(timeStr)}`);
+    if (!isNaN(isoAttempt.getTime())) return isoAttempt;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Convert "10:00 AM" → "10:00" or "2:30 PM" → "14:30" */
+function convertTo24Hour(timeStr) {
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return timeStr;
+  let hours = parseInt(match[1], 10);
+  const mins = match[2];
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && hours !== 12) hours += 12;
+  if (ampm === 'AM' && hours === 12) hours = 0;
+  return `${String(hours).padStart(2, '0')}:${mins}`;
+}
+
+
 // ── Express app ────────────────────────────────────────────────
 const app = express();
 app.use(express.json());
@@ -41,87 +167,67 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'patriot-elite-booking' });
+  res.json({ status: 'ok', service: 'patriot-elite-booking', calendar: !!calendarClient });
 });
 
+
 // ═══════════════════════════════════════════════════════════════
-// GET /api/debug/catalog
-// Temporary endpoint to see everything in the Square catalog.
-// Remove this once services are loading correctly.
+// Google Calendar OAuth2 — one-time setup endpoints
+// Visit /api/google/auth to start, then save the refresh token.
+// Remove these endpoints once you have your refresh token.
 // ═══════════════════════════════════════════════════════════════
-app.get('/api/debug/catalog', async (_req, res) => {
+app.get('/api/google/auth', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    return res.send('<h2>Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Railway first.</h2>');
+  }
+
+  // Build the redirect URI from the current request
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const redirectUri = `${protocol}://${host}/api/google/callback`;
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: ['https://www.googleapis.com/auth/calendar.events'],
+  });
+
+  res.redirect(authUrl);
+});
+
+app.get('/api/google/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send('Missing authorization code.');
+
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const redirectUri = `${protocol}://${host}/api/google/callback`;
+
+  const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri,
+  );
+
   try {
-    const results = {};
+    const { tokens } = await oauth2Client.getToken(code);
+    const refreshToken = tokens.refresh_token;
 
-    // Try every catalog type
-    const types = ['ITEM', 'ITEM_VARIATION', 'SERVICE', 'APPOINTMENT_SERVICE', 'SUBSCRIPTION_PLAN'];
-    for (const type of types) {
-      try {
-        const result = await catalogApi.listCatalog(undefined, type);
-        results[type] = (result.result.objects || []).map(obj => ({
-          id: obj.id,
-          type: obj.type,
-          name: obj.itemData?.name || obj.itemVariationData?.name || '(no name)',
-          productType: obj.itemData?.productType || null,
-          isDeleted: obj.isDeleted || false,
-        }));
-      } catch (e) {
-        results[type] = 'Error: ' + (e.message || 'unknown');
-      }
-    }
-
-    // Also try listing with no type filter at all
-    try {
-      const allResult = await catalogApi.listCatalog(undefined);
-      results['ALL_UNFILTERED'] = (allResult.result.objects || []).map(obj => ({
-        id: obj.id,
-        type: obj.type,
-        name: obj.itemData?.name || obj.itemVariationData?.name || obj.categoryData?.name || '(no name)',
-        productType: obj.itemData?.productType || null,
-      }));
-    } catch (e) {
-      results['ALL_UNFILTERED'] = 'Error: ' + (e.message || 'unknown');
-    }
-
-    // Try the bookings API to list services
-    try {
-      const bookingsApi = squareClient.bookingsApi;
-      results['HAS_BOOKINGS_API'] = !!bookingsApi;
-
-      // Try to list booking services via catalog search for APPOINTMENTS_SERVICE
-      const searchResult = await catalogApi.searchCatalogObjects({
-        objectTypes: ['ITEM'],
-        query: {
-          exactQuery: {
-            attributeName: 'item_data.product_type',
-            attributeValue: 'APPOINTMENTS_SERVICE',
-          },
-        },
-      });
-      results['APPOINTMENTS_SEARCH'] = (searchResult.result.objects || []).map(obj => ({
-        id: obj.id,
-        name: obj.itemData?.name,
-        productType: obj.itemData?.productType,
-      }));
-    } catch (e) {
-      results['APPOINTMENTS_SEARCH'] = 'Error: ' + (e.message || 'unknown');
-    }
-
-    // Try listing locations to verify the token works at all
-    try {
-      const locResult = await squareClient.locationsApi.listLocations();
-      results['LOCATIONS'] = (locResult.result.locations || []).map(loc => ({
-        id: loc.id,
-        name: loc.name,
-        status: loc.status,
-      }));
-    } catch (e) {
-      results['LOCATIONS'] = 'Error: ' + (e.message || 'unknown');
-    }
-
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.send(`
+      <html><body style="font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px;">
+        <h2 style="color: #4a9;">Google Calendar Connected!</h2>
+        <p>Copy this refresh token and add it as <strong>GOOGLE_REFRESH_TOKEN</strong> in Railway:</p>
+        <textarea style="width:100%; height:120px; font-family:monospace; font-size:13px; padding:10px;">${refreshToken}</textarea>
+        <p style="color:#999; margin-top:16px;">After adding the variable to Railway, the server will restart and calendar events will be created automatically for new bookings.</p>
+        <p style="color:#e55; margin-top:16px;"><strong>Security note:</strong> Once you've saved the token, you can remove the <code>/api/google/auth</code> and <code>/api/google/callback</code> endpoints from server.js.</p>
+      </body></html>
+    `);
+  } catch (err) {
+    res.status(500).send(`<h2>Error</h2><pre>${err.message}</pre>`);
   }
 });
 
@@ -134,7 +240,6 @@ app.get('/api/debug/catalog', async (_req, res) => {
 app.get('/api/services', async (_req, res) => {
   try {
     // Fetch ALL catalog items (ITEM covers both products and services)
-    // Also fetch APPOINTMENT_SERVICE type if available
     const allItems = [];
 
     // Fetch standard catalog items
@@ -149,14 +254,11 @@ app.get('/api/services', async (_req, res) => {
     // Also try to fetch via Square Appointments (bookings) API
     // Square services from the Service Library use the catalog but
     // have itemData.productType === 'APPOINTMENTS_SERVICE'
-    // They should already be in the ITEM list above, but let's also
-    // try a search to catch everything
     try {
       const searchResult = await catalogApi.searchCatalogItems({
         productTypes: ['APPOINTMENTS_SERVICE'],
       });
       const searchItems = searchResult.result.items || [];
-      // Add any items not already in our list
       const existingIds = new Set(allItems.map(i => i.id));
       for (const item of searchItems) {
         if (!existingIds.has(item.id)) {
@@ -164,7 +266,6 @@ app.get('/api/services', async (_req, res) => {
         }
       }
     } catch (searchErr) {
-      // searchCatalogItems may not be available in all Square plans
       console.log('Note: searchCatalogItems not available, using listCatalog only.');
     }
 
@@ -180,11 +281,8 @@ app.get('/api/services', async (_req, res) => {
         const data = item.itemData;
         const variation = data.variations && data.variations[0];
         const priceMoney = variation?.itemVariationData?.priceMoney;
-
-        // Also check serviceDuration for appointment services
         const duration = variation?.itemVariationData?.serviceDuration;
 
-        // Price in cents → dollars
         let priceCents = null;
         let priceDisplay = 'Custom Quote';
         let pricePerUnit = '';
@@ -195,9 +293,8 @@ app.get('/api/services', async (_req, res) => {
           priceDisplay = '$' + dollars.toLocaleString('en-US', { minimumFractionDigits: dollars % 1 ? 2 : 0 });
         }
 
-        // If it has a duration, add that info
         if (duration) {
-          const minutes = Number(duration) / 60000; // duration is in milliseconds
+          const minutes = Number(duration) / 60000;
           if (minutes >= 60) {
             pricePerUnit = `/ ${Math.round(minutes / 60)} hr`;
           } else {
@@ -217,9 +314,7 @@ app.get('/api/services', async (_req, res) => {
         };
       });
 
-    // Log what we found for debugging
     console.log(`Catalog: found ${allItems.length} total items, ${services.length} active services`);
-
     res.json({ success: true, services });
 
   } catch (error) {
@@ -316,10 +411,11 @@ app.post('/api/customer', async (req, res) => {
 // POST /api/pay
 // Process a card payment using the nonce from Square Web
 // Payments SDK on the frontend.
+// Also creates a Google Calendar event for the booking.
 // ═══════════════════════════════════════════════════════════════
 app.post('/api/pay', async (req, res) => {
   try {
-    const { sourceId, amountCents, customerId, booking } = req.body;
+    const { sourceId, amountCents, customerId, booking, customer } = req.body;
 
     if (!sourceId || !amountCents) {
       return res.status(400).json({
@@ -332,6 +428,8 @@ app.post('/api/pay', async (req, res) => {
       ? `${booking.service} | ${booking.date} ${booking.time} | ${booking.pickup} → ${booking.dropoff} | ${booking.passengers} pax`
       : 'Patriot Elite Logistics booking';
 
+    const confirmationId = 'PEL-' + Date.now().toString(36).toUpperCase();
+
     const paymentResult = await paymentsApi.createPayment({
       idempotencyKey: uuidv4(),
       sourceId:       sourceId,
@@ -342,17 +440,34 @@ app.post('/api/pay', async (req, res) => {
       locationId:  LOCATION_ID,
       customerId:  customerId || undefined,
       note:        bookingNote,
-      referenceId: 'PEL-' + Date.now().toString(36).toUpperCase(),
+      referenceId: confirmationId,
     });
 
     const payment = paymentResult.result.payment;
+
+    // ── Create Google Calendar event (non-blocking) ──
+    const calendarLink = await createCalendarEvent({
+      service:       booking?.service || 'Transportation',
+      date:          booking?.date,
+      time:          booking?.time,
+      pickup:        booking?.pickup || '',
+      dropoff:       booking?.dropoff || '',
+      passengers:    booking?.passengers || '1',
+      customerName:  customer?.name || 'Customer',
+      customerEmail: customer?.email || '',
+      customerPhone: customer?.phone || '',
+      notes:         booking?.notes || '',
+      confirmationId,
+      paymentMethod: 'Card payment',
+    });
 
     res.json({
       success:        true,
       paymentId:      payment.id,
       status:         payment.status,
       receiptUrl:     payment.receiptUrl,
-      confirmationId: payment.referenceId,
+      confirmationId: confirmationId,
+      calendarLink:   calendarLink,
     });
 
   } catch (error) {
@@ -369,11 +484,11 @@ app.post('/api/pay', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // POST /api/invoice
 // Create a Square order + invoice, then send it to the
-// customer's email.
+// customer's email. Also creates a Google Calendar event.
 // ═══════════════════════════════════════════════════════════════
 app.post('/api/invoice', async (req, res) => {
   try {
-    const { customerId, amountCents, serviceName, booking, email } = req.body;
+    const { customerId, amountCents, serviceName, booking, email, customer } = req.body;
 
     if (!customerId || !email) {
       return res.status(400).json({
@@ -453,6 +568,23 @@ app.post('/api/invoice', async (req, res) => {
     });
 
     const publishedInvoice = publishResult.result.invoice;
+    const confirmationId = 'PEL-' + Date.now().toString(36).toUpperCase();
+
+    // ── Create Google Calendar event (non-blocking) ──
+    const calendarLink = await createCalendarEvent({
+      service:       serviceName || 'Transportation',
+      date:          booking?.date,
+      time:          booking?.time,
+      pickup:        booking?.pickup || '',
+      dropoff:       booking?.dropoff || '',
+      passengers:    booking?.passengers || '1',
+      customerName:  customer?.name || 'Customer',
+      customerEmail: customer?.email || '',
+      customerPhone: customer?.phone || '',
+      notes:         booking?.notes || '',
+      confirmationId,
+      paymentMethod: 'Invoice — ' + (publishedInvoice.publicUrl || 'pending'),
+    });
 
     res.json({
       success:        true,
@@ -460,7 +592,8 @@ app.post('/api/invoice', async (req, res) => {
       invoiceNumber:  publishedInvoice.invoiceNumber,
       status:         publishedInvoice.status,
       publicUrl:      publishedInvoice.publicUrl,
-      confirmationId: 'PEL-' + Date.now().toString(36).toUpperCase(),
+      confirmationId: confirmationId,
+      calendarLink:   calendarLink,
     });
 
   } catch (error) {
@@ -501,5 +634,6 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`\n  Patriot Elite Booking running on http://localhost:${PORT}`);
   console.log(`  Environment: ${process.env.SQUARE_ENVIRONMENT || 'sandbox'}`);
-  console.log(`  Location:    ${LOCATION_ID}\n`);
+  console.log(`  Location:    ${LOCATION_ID}`);
+  console.log(`  Calendar:    ${calendarClient ? GOOGLE_CALENDAR_ID : 'not configured'}\n`);
 });
